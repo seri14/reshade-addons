@@ -15,7 +15,8 @@ struct history
     enum class kind
     {
         uniform_value = 0,
-        technique_state
+        technique_state,
+        technique_sort,
     };
 
     union uniform_value
@@ -35,6 +36,7 @@ struct history
     reshade::api::effect_uniform_variable variable_handle = { 0 };
     reshade::api::format variable_basetype = reshade::api::format::unknown;
     uniform_value before = {}, after = {};
+    std::vector<reshade::api::effect_technique> sorted, sorting;
     bool confirmed = false;
 };
 
@@ -44,6 +46,40 @@ struct __declspec(uuid("2f91f8ec-6f8e-436b-b6cc-d7f8d5f9e44c")) history_context
     size_t history_pos = 0;
     std::list<history> histories;
 };
+
+static bool on_sort_techniques(reshade::api::effect_runtime *runtime, reshade::api::effect_technique *sorting_techniques, size_t count)
+{
+    history_context &ctx = runtime->get_private_data<history_context>();
+
+    std::vector<reshade::api::effect_technique> sorted, sorting;
+    runtime->enumerate_techniques(nullptr, [&sorted](reshade::api::effect_runtime *runtime, reshade::api::effect_technique &technique) {
+        sorted.push_back(technique); });
+
+    sorting.resize(sorted.size());
+    std::memcpy(sorting.data(), sorting_techniques, sizeof(reshade::api::effect_technique) * count);
+
+    while (ctx.history_pos > 0)
+    {
+        ctx.histories.pop_front();
+        --ctx.history_pos;
+    }
+
+    if (auto front = ctx.histories.begin(); front != ctx.histories.end() && front->kind == history::kind::technique_sort)
+    {
+        sorted = std::move(front->sorted);
+        ctx.histories.pop_front();
+    }
+
+    history history;
+    history.kind = history::kind::technique_sort;
+    history.sorted = std::move(sorted);
+    history.sorting = std::move(sorting);
+
+    if (ctx.histories.size() < HISTORY_LIMIT)
+        ctx.histories.push_front(std::move(history));
+
+    return false;
+}
 
 static void on_init(reshade::api::effect_runtime *runtime)
 {
@@ -265,6 +301,11 @@ static void draw_history_window(reshade::api::effect_runtime *runtime)
                 label += it->technique_enabled ? " True" : " False";
                 break;
             }
+            case history::kind::technique_sort:
+            {
+            	label += "Sort technique list";
+                break;
+            }
         }
 
         label += "##" + std::to_string(current_pos);
@@ -316,6 +357,9 @@ static void draw_history_window(reshade::api::effect_runtime *runtime)
                 case history::kind::technique_state:
                     runtime->set_technique_state(it->technique_handle, !it->technique_enabled);
                     break;
+                case history::kind::technique_sort:
+                    runtime->sort_techniques(it->sorted.data(), it->sorted.size());
+                    break;
             }
 
             ++it;
@@ -349,6 +393,9 @@ static void draw_history_window(reshade::api::effect_runtime *runtime)
                 case history::kind::technique_state:
                     runtime->set_technique_state(it->technique_handle, it->technique_enabled);
                     break;
+                case history::kind::technique_sort:
+                    runtime->sort_techniques(it->sorting.data(), it->sorting.size());
+                    break;
             }
         }
     }
@@ -366,6 +413,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID)
             reshade::register_event<reshade::addon_event::reshade_set_current_preset_path>(on_reshade_set_current_preset_path);
             reshade::register_event<reshade::addon_event::reshade_set_uniform_value>(on_set_uniform_value);
             reshade::register_event<reshade::addon_event::reshade_set_technique_state>(on_set_technique_state);
+            reshade::register_event<reshade::addon_event::reshade_sort_techniques>(on_sort_techniques);
             reshade::register_overlay("History", draw_history_window);
             break;
         case DLL_PROCESS_DETACH:

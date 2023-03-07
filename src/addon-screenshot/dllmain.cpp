@@ -68,16 +68,12 @@ static void on_device_present(reshade::api::command_queue *, reshade::api::swapc
 {
     ini_file::flush_cache();
 
-    reshade::api::device *device = swapchain->get_device();
+    reshade::api::effect_runtime *runtime = static_cast<reshade::api::effect_runtime *>(swapchain);
+    reshade::api::device *device = runtime->get_device();
     screenshot_context &ctx = device->get_private_data<screenshot_context>();
 
     ctx.screenshot_current_frame++;
     ctx.present_time = std::chrono::steady_clock::now();
-}
-static void on_reshade_available_back_buffer(reshade::api::effect_runtime *runtime)
-{
-    reshade::api::device *device = runtime->get_device();
-    screenshot_context &ctx = device->get_private_data<screenshot_context>();
 
     if (ctx.is_screenshot_frame(screenshot_kind::original))
     {
@@ -206,8 +202,8 @@ static void draw_osd_window(reshade::api::effect_runtime *runtime)
     std::string str;
     if (ctx.active_screenshot != nullptr)
     {
-        fraction = ctx.active_screenshot->repeat_count != 0 ? (static_cast<float>(ctx.screenshot_repeat_index) / ctx.active_screenshot->repeat_count) : 1.0f;
-        str = std::format(ctx.active_screenshot->repeat_count != 0 ? "%u of %u" : "%u times (Infinite mode)", ctx.screenshot_repeat_index, ctx.active_screenshot->repeat_count);
+        fraction = ctx.active_screenshot->repeat_count != 0 ? (static_cast<float>(ctx.screenshot_repeat_index + 1) / ctx.active_screenshot->repeat_count) : 1.0f;
+        str = std::format(ctx.active_screenshot->repeat_count != 0 ? "%u of %u" : "%u times (Infinite mode)", (ctx.screenshot_repeat_index + 1), ctx.active_screenshot->repeat_count);
     }
     else
     {
@@ -362,7 +358,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID)
             reshade::register_event<reshade::addon_event::init_effect_runtime>(on_init);
             reshade::register_event<reshade::addon_event::destroy_device>(on_destroy);
             reshade::register_event<reshade::addon_event::present>(on_device_present);
-            reshade::register_event<reshade::addon_event::reshade_available_back_buffer>(on_reshade_available_back_buffer);
             reshade::register_event<reshade::addon_event::reshade_begin_effects>(on_begin_effects);
             reshade::register_event<reshade::addon_event::reshade_finish_effects>(on_finish_effects);
             reshade::register_event<reshade::addon_event::reshade_overlay>(on_reshade_overlay);

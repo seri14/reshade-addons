@@ -151,7 +151,7 @@ static void on_reshade_present(reshade::api::effect_runtime *runtime)
         };
         for (screenshot_myset &screenshot_myset : ctx.config.screenshot_mysets)
         {
-            const unsigned int(&keys)[4] = screenshot_myset.shortcut_combination;
+            const unsigned int(&keys)[4] = screenshot_myset.screenshot_key_data;
 
             if (!keys[0])
                 continue;
@@ -253,7 +253,7 @@ static void draw_setting_window(reshade::api::effect_runtime *runtime)
                     static const std::wstring_view invalid_characters = L"[]\"/|?*";
                     return 0x0 <= data->EventChar && data->EventChar <= 0x1F || data->EventChar == 0x7F || invalid_characters.find(data->EventChar) != std::string::npos;
                 };
-                modified |= key_input_box("Screenshot key", screenshot_myset.shortcut_combination, runtime);
+                modified |= key_input_box("Screenshot key", screenshot_myset.screenshot_key_data, runtime);
                 bool isItemHovered = false;
                 if (buf[screenshot_myset.original_image.u8string().copy(buf, sizeof(buf) - 1)] = '\0';
                     ImGui::InputTextWithHint("Original image", "Enter path to enable", buf, sizeof(buf), ImGuiInputTextFlags_CallbackCharFilter, path_filter))

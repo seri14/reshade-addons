@@ -38,7 +38,7 @@ public:
     unsigned int image_format = 0;
     unsigned int repeat_count = 0;
     unsigned int repeat_wait = 0;
-    unsigned int shortcut_combination[4]{ 0, 0, 0, 0 };
+    unsigned int screenshot_key_data[4]{ 0, 0, 0, 0 };
 
     std::filesystem::path original_image;
     std::filesystem::path before_image;

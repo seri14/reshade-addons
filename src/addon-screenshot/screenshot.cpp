@@ -60,6 +60,8 @@ void screenshot_myset::load(const ini_file &config)
         before_image.clear();
     if (!config.get(section.c_str(), "ImageFormat", image_format))
         image_format = 0;
+    if (!config.get(section.c_str(), "KeyScreenshot", screenshot_key_data))
+        std::memset(screenshot_key_data, 0, sizeof(screenshot_key_data));
     if (!config.get(section.c_str(), "OriginalImage", original_image))
         original_image.clear();
     if (!config.get(section.c_str(), "OverlayImage", overlay_image))
@@ -68,8 +70,6 @@ void screenshot_myset::load(const ini_file &config)
         repeat_count = 1;
     if (!config.get(section.c_str(), "RepeatWait", repeat_wait))
         repeat_wait = 0;
-    if (!config.get(section.c_str(), "ShortcutKey", shortcut_combination))
-        std::memset(shortcut_combination, 0, sizeof(shortcut_combination));
     if (!config.get(section.c_str(), "WorkerThreads", worker_threads))
         worker_threads = 0;
 }
@@ -80,11 +80,11 @@ void screenshot_myset::save(ini_file &config)
     config.set(section.c_str(), "AfterImage", after_image);
     config.set(section.c_str(), "BeforeImage", before_image);
     config.set(section.c_str(), "ImageFormat", image_format);
+    config.set(section.c_str(), "KeyScreenshot", screenshot_key_data);
     config.set(section.c_str(), "OriginalImage", original_image);
     config.set(section.c_str(), "OverlayImage", overlay_image);
     config.set(section.c_str(), "RepeatCount", repeat_count);
     config.set(section.c_str(), "RepeatWait", repeat_wait);
-    config.set(section.c_str(), "ShortcutKey", shortcut_combination);
     config.set(section.c_str(), "WorkerThreads", worker_threads);
 }
 

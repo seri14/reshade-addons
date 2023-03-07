@@ -90,7 +90,7 @@ void screenshot_myset::save(ini_file &config)
 
 void screenshot_environment::load(reshade::api::effect_runtime *runtime)
 {
-    constexpr size_t SIZE = 1024 * 8;
+    constexpr size_t SIZE = sizeof(wchar_t) * 4096;
     union
     {
         char as_char[SIZE / sizeof(char)];
@@ -136,7 +136,7 @@ void screenshot::save()
             image_file = myset.overlay_image;
             break;
         default:
-            reshade::log_message(reshade::log_level::debug, std::string("Unknown screenshot kind: " + std::to_string(kind)).c_str());
+            reshade::log_message(reshade::log_level::debug, std::format("Unknown screenshot kind: %d", kind).c_str());
             return;
     }
 
@@ -162,46 +162,46 @@ void screenshot::save()
                 *((uint32_t *)&pixel[4 * i]);
         }
 
-        FILE *file = nullptr;
-
-        if (_wfopen_s(&file, image_file.native().c_str(), L"wb"))
-            return;
-
-        png_structp write_ptr = nullptr;
-        png_infop info_ptr = nullptr;
-
-        if (write_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr); write_ptr != nullptr)
+        if (FILE *file = nullptr;
+            _wfopen_s(&file, image_file.native().c_str(), L"wb") == 0)
         {
-            char vbuf[1024 * 512];
-            setvbuf(file, vbuf, _IOFBF, sizeof(vbuf));
+            png_structp write_ptr = nullptr;
+            png_infop info_ptr = nullptr;
 
-            png_init_io(write_ptr, file);
-            png_set_filter(write_ptr, PNG_FILTER_TYPE_BASE, PNG_ALL_FILTERS);
-
-            png_set_compression_mem_level(write_ptr, MAX_MEM_LEVEL);
-            png_set_compression_buffer_size(write_ptr, 65536);
-
-            png_set_compression_level(write_ptr, Z_BEST_COMPRESSION);
-            png_set_compression_strategy(write_ptr, Z_RLE);
-
-            if (info_ptr = png_create_info_struct(write_ptr); info_ptr != nullptr)
+            if (write_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+                write_ptr != nullptr)
             {
-                png_set_IHDR(write_ptr, info_ptr, width, height, 8, myset.image_format == 0 ? PNG_COLOR_TYPE_RGB : PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
-                png_write_info(write_ptr, info_ptr);
+                setvbuf(file, nullptr, _IOFBF, 1024 * 512);
 
-                std::vector<png_bytep> rows(height);
-                for (size_t y = 0; y < height; y++)
-                    rows[y] = pixel + channels * width * y;
-                png_write_image(write_ptr, rows.data());
+                png_init_io(write_ptr, file);
+                png_set_filter(write_ptr, PNG_FILTER_TYPE_BASE, PNG_ALL_FILTERS);
 
-                png_write_end(write_ptr, info_ptr);
+                png_set_compression_mem_level(write_ptr, MAX_MEM_LEVEL);
+                png_set_compression_buffer_size(write_ptr, 65536);
+
+                png_set_compression_level(write_ptr, Z_BEST_COMPRESSION);
+                png_set_compression_strategy(write_ptr, Z_RLE);
+
+                if (info_ptr = png_create_info_struct(write_ptr);
+                    info_ptr != nullptr)
+                {
+                    png_set_IHDR(write_ptr, info_ptr, width, height, 8, myset.image_format == 0 ? PNG_COLOR_TYPE_RGB : PNG_COLOR_TYPE_RGBA, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+                    png_write_info(write_ptr, info_ptr);
+
+                    std::vector<png_bytep> rows(height);
+                    for (size_t y = 0; y < height; y++)
+                        rows[y] = pixel + channels * width * y;
+                    png_write_image(write_ptr, rows.data());
+
+                    png_write_end(write_ptr, info_ptr);
+                }
             }
+
+            png_destroy_write_struct(&write_ptr, &info_ptr);
+            png_destroy_info_struct(write_ptr, &info_ptr);
+
+            fclose(file);
         }
-
-        png_destroy_write_struct(&write_ptr, &info_ptr);
-        png_destroy_info_struct(write_ptr, &info_ptr);
-
-        fclose(file);
     }
 
     return;

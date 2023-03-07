@@ -38,7 +38,7 @@ public:
 
     void save();
 
-    inline bool is_screenshot_active() const;
-    inline bool is_screenshot_frame() const;
-    inline bool is_screenshot_frame(screenshot_kind kind) const;
+    inline bool is_screenshot_active() const noexcept;
+    inline bool is_screenshot_frame() const noexcept;
+    inline bool is_screenshot_frame(screenshot_kind kind) const noexcept;
 };

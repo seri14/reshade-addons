@@ -22,7 +22,7 @@ void screenshot_context::save()
 {
     config.save(ini_file::load_cache(environment.reshade_base_path / "ReShade_Addon_Screenshot.ini"), false);
 }
-inline bool screenshot_context::is_screenshot_active() const
+inline bool screenshot_context::is_screenshot_active() const noexcept
 {
     if (active_screenshot == nullptr)
         return false;
@@ -31,7 +31,7 @@ inline bool screenshot_context::is_screenshot_active() const
 
     return true;
 }
-inline bool screenshot_context::is_screenshot_frame() const
+inline bool screenshot_context::is_screenshot_frame() const noexcept
 {
     if (active_screenshot == nullptr)
         return false;
@@ -42,7 +42,7 @@ inline bool screenshot_context::is_screenshot_frame() const
 
     return true;
 }
-inline bool screenshot_context::is_screenshot_frame(screenshot_kind kind)const
+inline bool screenshot_context::is_screenshot_frame(screenshot_kind kind) const noexcept
 {
     return is_screenshot_frame() && active_screenshot->is_enable(kind);
 }
